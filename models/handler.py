@@ -20,8 +20,9 @@ class Handler:
 
         train_indices, val_indices = train_test_split(
             range(len(train_dataset)),
-            test_size=0.2,
-            stratify=targets
+            test_size=0.1,
+            stratify=targets,
+            random_state=42
         )
 
         self.train_dataset = torch.utils.data.Subset(train_dataset, train_indices)

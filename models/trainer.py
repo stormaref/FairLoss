@@ -30,7 +30,7 @@ class Trainer:
             self.train_step(epoch, num_epochs)
             val_loss, val_acc = self.val_step()
             print(f'Epoch {epoch+1}/{num_epochs}, Val Loss: {val_loss}, Val Acc: {val_acc}')
-        self.plot()
+        self.plot(num_epochs)
             
     def train_step(self, epoch, num_epochs):
         self.model.train()
@@ -80,10 +80,10 @@ class Trainer:
         val_accuracy = correct_preds / total_samples
         self.val_losses.append(avg_val_loss)
         self.val_accuracies.append(val_accuracy)
-        return val_loss, val_accuracy
+        return avg_val_loss, val_accuracy
 
-    def plot(self):
-        epochs = range(1, self.num_epochs + 1)
+    def plot(self, num_epochs):
+        epochs = range(1, num_epochs + 1)
         plt.figure(figsize=(12, 5))
 
         # Loss plot
