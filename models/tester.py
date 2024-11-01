@@ -30,6 +30,6 @@ class Tester:
         fig, ax = plt.subplots()
         sns.heatmap(conf_matrix, annot=True, fmt='d', ax=ax)
         plt.show()
-        class_report = classification_report(all_labels, all_preds)
+        class_report = classification_report(all_labels, all_preds, digits=5)
         print("\nClassification Report:")
         print(class_report)
