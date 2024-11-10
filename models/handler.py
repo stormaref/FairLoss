@@ -29,8 +29,8 @@ class Handler:
         self.val_dataset = torch.utils.data.Subset(train_dataset, val_indices)
 
         # Prepare data loaders
-        self.train_loader = DataLoader(self.train_dataset, batch_size=128, shuffle=True)
-        self.val_loader = DataLoader(self.val_dataset, batch_size=64, shuffle=False)
+        self.train_loader = DataLoader(self.train_dataset, batch_size=512, shuffle=True)
+        self.val_loader = DataLoader(self.val_dataset, batch_size=128, shuffle=False)
         self.test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
         # Initialize trainer and tester
