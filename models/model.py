@@ -5,7 +5,7 @@ class ResnetClassifier(nn.Module):
     def __init__(self, num_classes=10, pretrained=True):
         super(ResnetClassifier, self).__init__()
         self.backbone = resnet18(weights=ResNet18_Weights.DEFAULT if pretrained else None)
-        self.backbone.fc = nn.Sequential(nn.Flatten(), nn.Linear(self.backbone.fc.in_features, num_classes))
+        self.backbone.fc = nn.Sequential(nn.Flatten(), nn.Linear(self.backbone.fc.in_features, num_classes), nn.Softmax(dim=1))
 
     def forward(self, x):
         return self.backbone(x)
