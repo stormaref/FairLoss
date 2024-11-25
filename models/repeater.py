@@ -36,6 +36,18 @@ class Repeater:
             
             model = ResnetClassifier()
             model = model.to(self.device)
+            model.load_state_dict(torch.load('model.pth'))
+            critertion = FairLoss(num_classes=10)
+            optimizer = Adam(model.parameters(), lr=0.001)
+            handler = Handler(model, self.device, critertion, optimizer, self.train_dataset, 
+                              self.test_dataset, self.transform)
+            handler.train(epochs)
+            fl_acc = handler.test()
+            total_fl_acc += fl_acc
+            print(f'FairLoss accuracy in repeat {i + 1}: {fl_acc * 100}%')
+            
+            model = ResnetClassifier()
+            model = model.to(self.device)
             model.load_state_dict(torch.load('model.pth', weights_only=True))
             critertion = CrossEntropyLoss()
             optimizer = Adam(model.parameters(), lr=0.001)
@@ -45,18 +57,6 @@ class Repeater:
             ce_acc = handler.test()
             total_ce_acc += ce_acc
             print(f'CrossEntropyLoss accuracy in repeat {i + 1}: {ce_acc * 100}%')
-            
-            model = ResnetClassifier()
-            model = model.to(self.device)
-            model.load_state_dict(torch.load('model.pth'))
-            critertion = FairLoss(num_classes=10)
-            optimizer = Adam(model.parameters(), lr=0.001)
-            handler = Handler(model, self.device, critertion, optimizer, self.train_dataset, 
-                              self.test_dataset, self.transform)
-            handler.train(epochs)
-            fl_acc = handler.test()
-            total_fl_acc += fl_acc
-            print(f'FairLoss accuracy in repeat {i + 1}: {ce_acc * 100}%')
             
         avg_ce_acc = total_ce_acc / repeat_count
         avg_fl_acc = total_fl_acc / repeat_count
