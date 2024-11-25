@@ -41,4 +41,4 @@ class Handler:
         self.trainer.train(num_epochs)
         
     def test(self):
-        self.tester.test()
+        return self.tester.test()

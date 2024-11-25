@@ -34,10 +34,10 @@ class Trainer:
         os.makedirs(self.checkpoint_dir, exist_ok=True)
 
     def train(self, num_epochs):
-        for epoch in range(num_epochs):
+        for epoch in tqdm(range(num_epochs)):
             self.train_step(epoch, num_epochs)
             val_loss, val_acc = self.val_step()
-            print(f'Epoch {epoch+1}/{num_epochs}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}')
+            # print(f'Epoch {epoch+1}/{num_epochs}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}')
             
             # Checkpointing based on validation loss
             if val_loss < self.best_val_loss:
@@ -47,7 +47,7 @@ class Trainer:
         # Load the best model after training
         if self.best_checkpoint_path:
             self.load_checkpoint(self.best_checkpoint_path)
-            print(f'Best model loaded from {self.best_checkpoint_path} with validation loss {self.best_val_loss:.4f}')
+            # print(f'Best model loaded from {self.best_checkpoint_path} with validation loss {self.best_val_loss:.4f}')
         
         self.plot(num_epochs)
 
@@ -56,8 +56,8 @@ class Trainer:
         running_loss = 0.0
         correct_preds = 0
         total_samples = 0
-        progress_bar = tqdm(self.train_dataloader, desc=f'Epoch {epoch+1}/{num_epochs}')
-        for inputs, labels in progress_bar:
+        # progress_bar = tqdm(self.train_dataloader, desc=f'Epoch {epoch+1}/{num_epochs}')
+        for inputs, labels in self.train_dataloader:
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             outputs = self.model(inputs)
             loss = self.criterion(outputs, labels)
@@ -70,9 +70,9 @@ class Trainer:
             _, predicted = outputs.max(1)
             total_samples += labels.size(0)
             correct_preds += predicted.eq(labels).sum().item()
-            avg_loss = running_loss / (total_samples / labels.size(0))
-            accuracy = correct_preds / total_samples
-            progress_bar.set_postfix({'avg_loss':avg_loss, 'accuracy':accuracy})
+            # avg_loss = running_loss / (total_samples / labels.size(0))
+            # accuracy = correct_preds / total_samples
+            # progress_bar.set_postfix({'avg_loss':avg_loss, 'accuracy':accuracy})
 
         # Log epoch metrics
         self.train_losses.append(running_loss / len(self.train_dataloader))
@@ -107,14 +107,14 @@ class Trainer:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'val_loss': self.best_val_loss,
         }, checkpoint_path)
-        print(f'Checkpoint saved at {checkpoint_path}')
+        # print(f'Checkpoint saved at {checkpoint_path}')
         return checkpoint_path
 
     def load_checkpoint(self, checkpoint_path):
         checkpoint = torch.load(checkpoint_path)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        print(f'Loaded checkpoint from {checkpoint_path} at epoch {checkpoint["epoch"]}')
+        # print(f'Loaded checkpoint from {checkpoint_path} at epoch {checkpoint["epoch"]}')
 
     def plot(self, num_epochs):
         epochs = range(1, num_epochs + 1)
@@ -139,4 +139,4 @@ class Trainer:
         plt.legend()
 
         plt.tight_layout()
-        plt.show()
+        # plt.show()
