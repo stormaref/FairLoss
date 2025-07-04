@@ -1,5 +1,5 @@
-from src.evaluate import evaluate
 from src.utils import save_model
+from src.evaluate import evaluate
 from tqdm import tqdm
 
 def train(model, train_loader, val_loader, optimizer, criterion, epochs, device='cpu',
@@ -8,7 +8,8 @@ def train(model, train_loader, val_loader, optimizer, criterion, epochs, device=
     best_acc = 0.0
     patience_counter = 0
 
-    for epoch in tqdm(range(epochs)):
+    t = tqdm(range(epochs))
+    for epoch in t:
         model.train()
         train_loss = 0.0
         for data, target in train_loader:
@@ -22,8 +23,8 @@ def train(model, train_loader, val_loader, optimizer, criterion, epochs, device=
 
         train_loss /= len(train_loader.dataset)
         val_loss, val_acc, _ = evaluate(model, val_loader, criterion, device)
-
-        print(f"Epoch {epoch+1}: Train Loss = {train_loss:.4f}, Val Loss = {val_loss:.4f}, Val Acc = {val_acc:.4f}")
+        
+        t.set_postfix_str(f"Epoch {epoch+1}: Train Loss = {train_loss:.4f}, Val Loss = {val_loss:.4f}, Val Acc = {val_acc:.4f}")
 
         # Save best model based on validation accuracy
         if val_acc > best_acc:

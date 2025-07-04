@@ -3,26 +3,26 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class FairLoss(nn.Module):
-    def __init__(self, num_classes, smooth_max_beta=1000.0, scaling_factor=1000):
+    def __init__(self, smooth_max_beta=1000.0, scaling_factor=1000):
         super(FairLoss, self).__init__()
         self.base_loss_fn = nn.CrossEntropyLoss(reduction='none')
-        self.num_classes = num_classes  # Number of classes
         self.smooth_max_beta = smooth_max_beta
         self.scaling_factor = scaling_factor  # Default is positive
 
-    def one_hot_encode(self, target):
+    def one_hot_encode(self, target, num_classes):
         # Ensure the target is of type long (int64)
         target = target.long()
         # Use F.one_hot to create the one-hot encoded tensor
-        one_hot = F.one_hot(target, num_classes=self.num_classes)  # Shape: (N, num_classes)
+        one_hot = F.one_hot(target, num_classes=num_classes)  # Shape: (N, num_classes)
         return one_hot.float()
 
-    def forward(self, output, target):
+    def forward(self, output: torch.Tensor, target: torch.Tensor):
+        num_classes = output.shape[1]
         # Calculate base loss for each sample, maintaining output shape
         base_loss = self.base_loss_fn(output, target)  # Keep base_loss shape as (N,)
         # print(f'Base loss: {base_loss}, shape: {base_loss.shape}')  # Debugging output and shape
 
-        target = self.one_hot_encode(target)
+        target = self.one_hot_encode(target, num_classes)
         # print(f'Output: {output}')  # Debugging output
         # print(f'Output shape: {output.shape}, target shape: {target.shape}')  # Debugging output
         # Calculate SmoothMax using logsumexp
@@ -39,7 +39,7 @@ class FairLoss(nn.Module):
         # print(f'Element-wise multiplication: {element_wise_mult}, shape: {element_wise_mult.shape}')  # Debugging output and shape
 
         # Create a vector of ones with the same shape as the number of classes
-        ones_vector = torch.ones(self.num_classes, 1)  # Shape: (C, 1)
+        ones_vector = torch.ones(num_classes, 1, device=output.device)  # Shape: (C, 1)
         # print(f'Ones vector: {ones_vector}, shape: {ones_vector.shape}')  # Debugging output and shape
 
         # Transpose the ones vector and multiply to get a tensor for each sample
@@ -59,17 +59,17 @@ class FairLoss(nn.Module):
         # print(f'Final output after squeezing: {final_output}, shape: {final_output.shape}')  # Debugging output and shape
 
         # Total loss will also have shape (N,)
-        penalty = final_output / self.num_classes  # Shape: (N,)
+        penalty = final_output / num_classes  # Shape: (N,)
         total_loss = base_loss + penalty  # Keep final_output as is
         # print(f'Total loss: {total_loss}, shape: {total_loss.shape}')  # Debugging output and shape
 
         return total_loss.mean()  # Shape: (N,)
     
     
-def get_loss_fn(name, num_classes):
+def get_loss_fn(name):
     if name.lower() == 'ce':
         return nn.CrossEntropyLoss()
     elif name.lower() == 'fair_loss':
-        return FairLoss(num_classes)
+        return FairLoss()
     else:
         raise ValueError(f"Unknown loss: {name}")

@@ -1,75 +1,92 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import torch
+from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.calibration import calibration_curve
 
-def softmax(logits):
-    e = np.exp(logits - np.max(logits, axis=-1, keepdims=True))
-    return e / np.sum(e, axis=-1, keepdims=True)
-
-def compute_ece(probs, labels, n_bins=10):
-    """
-    probs: shape (N, C)
-    labels: shape (N,)
-    """
-    bin_edges = np.linspace(0, 1, n_bins + 1)
-    ece = 0.0
-    N = len(labels)
-    conf = np.max(probs, axis=1)
-    preds = np.argmax(probs, axis=1)
-    for i in range(n_bins):
-        lo, hi = bin_edges[i], bin_edges[i+1]
-        idx = np.where((conf > lo) & (conf <= hi))[0]
-        if idx.size:
-            acc = np.mean(preds[idx] == labels[idx])
-            avg_conf = np.mean(conf[idx])
-            ece += np.abs(acc - avg_conf) * (idx.size / N)
-    return ece
-
-def brier_score(probs, labels):
-    one_hot = np.zeros_like(probs)
-    one_hot[np.arange(len(labels)), labels] = 1
-    return np.mean(np.sum((probs - one_hot)**2, axis=1))
-
-def reliability_diagram(ax, probs, labels, n_bins=10):
-    bin_edges = np.linspace(0, 1, n_bins + 1)
-    accs, confs = [], []
-    for i in range(n_bins):
-        lo, hi = bin_edges[i], bin_edges[i+1]
-        idx = np.where((np.max(probs, 1) > lo) & (np.max(probs, 1) <= hi))[0]
-        if idx.size:
-            accs.append(np.mean(np.argmax(probs[idx], 1) == labels[idx]))
-            confs.append(np.mean(np.max(probs[idx], 1)))
+class Metric:
+    def __init__(self):
+        pass
+    
+    def ece(self, y_true, y_prob, n_bins=10):
+        """
+        Calculate Expected Calibration Error (ECE)
+        """
+        bin_boundaries = np.linspace(0, 1, n_bins + 1)
+        bin_lowers = bin_boundaries[:-1]
+        bin_uppers = bin_boundaries[1:]
+        
+        ece = 0
+        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+            # Determine if sample is in bin m (between bin lower & upper)
+            in_bin = (y_prob > bin_lower) & (y_prob <= bin_upper)
+            prop_in_bin = in_bin.mean()
+            
+            if prop_in_bin > 0:
+                accuracy_in_bin = y_true[in_bin].mean()
+                avg_confidence_in_bin = y_prob[in_bin].mean()
+                ece += np.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+        
+        return ece
+    
+    def nll(self, y_true, y_prob, epsilon=1e-7):
+        """
+        Calculate Negative Log Likelihood (NLL)
+        """
+        # Clip probabilities to avoid log(0)
+        y_prob = np.clip(y_prob, epsilon, 1 - epsilon)
+        
+        # Calculate NLL
+        nll = -np.mean(y_true * np.log(y_prob) + (1 - y_true) * np.log(1 - y_prob))
+        return nll
+    
+    def f1(self, y_true, y_pred, average='binary'):
+        """
+        Calculate F1 Score
+        """
+        return f1_score(y_true, y_pred, average=average)
+    
+    def precision(self, y_true, y_pred, average='binary'):
+        """
+        Calculate Precision
+        """
+        return precision_score(y_true, y_pred, average=average)
+    
+    def recall(self, y_true, y_pred, average='binary'):
+        """
+        Calculate Recall
+        """
+        return recall_score(y_true, y_pred, average=average)
+    
+    def calculate_all_metrics(self, y_true, y_pred, y_prob=None, threshold=0.5):
+        """
+        Wrapper to calculate all metrics
+        
+        Args:
+            y_true: Ground truth labels
+            y_pred: Predicted labels (or probabilities if y_prob is None)
+            y_prob: Predicted probabilities (optional)
+            threshold: Threshold for converting probabilities to binary predictions
+        
+        Returns:
+            Dictionary containing all metrics
+        """
+        # Convert inputs to numpy arrays
+        y_true = np.array(y_true)
+        y_pred = np.array(y_pred)
+        
+        # If y_prob is not provided, assume y_pred contains probabilities
+        if y_prob is None:
+            y_prob = y_pred
+            y_pred = (y_prob >= threshold).astype(int)
         else:
-            accs.append(0)
-            confs.append((lo + hi) / 2)
-    ax.plot(confs, accs, marker='o')
-    ax.plot([0, 1], [0, 1], '--', color='gray')
-    ax.set_xlabel('Confidence')
-    ax.set_ylabel('Accuracy')
-    ax.set_title('Reliability Diagram')
-
-def evaluate_mc_metrics(mc_logits, labels, n_bins=10):
-    """
-    mc_logits: np.ndarray of shape (T, N, C)
-    labels: np.ndarray of shape (N,)
-    """
-    if isinstance(mc_logits, np.ndarray) is False:
-        mc_logits = mc_logits.cpu().numpy()
-
-    T, N, C = mc_logits.shape
-    mc_probs = softmax(mc_logits)  # (T, N, C)
-    mean_probs = np.mean(mc_probs, axis=0)  # (N, C)
-
-    acc = np.mean(np.argmax(mean_probs, axis=1) == labels)
-    ece = compute_ece(mean_probs, labels, n_bins=n_bins)
-    brier = brier_score(mean_probs, labels)
-
-    print(f"Accuracy:     {acc:.4f}")
-    print(f"ECE:          {ece:.4f}")
-    print(f"Brier Score:  {brier:.4f}")
-
-    fig, ax = plt.subplots()
-    reliability_diagram(ax, mean_probs, labels, n_bins=n_bins)
-    plt.tight_layout()
-    plt.show()
-
-    return {"accuracy": acc, "ece": ece, "brier": brier}
+            y_prob = np.array(y_prob)
+        
+        metrics = {
+            'f1': self.f1(y_true, y_pred),
+            'precision': self.precision(y_true, y_pred),
+            'recall': self.recall(y_true, y_pred),
+            'ece': self.ece(y_true, y_prob),
+            'nll': self.nll(y_true, y_prob)
+        }
+        
+        return metrics
