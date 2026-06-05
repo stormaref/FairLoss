@@ -1,4 +1,12 @@
 data/
 *.pth
-__pycache__
+__pycache__/
+*.py[cod]
+*$py.class
 .DS_Store
+.vscode/
+
+dist/
+build/
+*.egg-info/
+.eggs/
