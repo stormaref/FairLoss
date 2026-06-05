@@ -45,8 +45,10 @@ Full derivation: [`formulation.pdf`](formulation.pdf)
 ## Install
 
 ```bash
-pip install fairloss
+pip install pytorch-fairloss
 ```
+
+Import as `from fairloss import FairLoss` (the PyPI name differs from the import path).
 
 Or install from source:
 

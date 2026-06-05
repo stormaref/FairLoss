@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fairloss"
-version = "0.1.0"
+name = "pytorch-fairloss"
+version = "0.1.1"
 description = "PyTorch classification loss with a SmoothMax-based calibration penalty"
 readme = "README.md"
 license = "MIT"
